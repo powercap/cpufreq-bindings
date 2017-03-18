@@ -1,6 +1,5 @@
 os:
   - linux
-  - osx
 
 addons:
   apt:
@@ -16,4 +15,3 @@ script:
   - cd _build
   - cmake ..
   - make
-  - make test
