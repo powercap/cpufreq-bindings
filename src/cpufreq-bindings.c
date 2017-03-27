@@ -92,7 +92,7 @@ static uint32_t read_file_u32arr_template(int fd, uint32_t core, uint32_t* arr, 
   size_t buflen = len * (U32_MAX_LEN + 1) + 1;
   char buf[buflen];
   char* tok;
-  char* ptr;
+  char* ptr = NULL;
   int local_fd = fd <= 0;
   if (local_fd) {
     if ((fd = cpufreq_bindings_open_file_template(template, core, O_RDONLY)) <= 0) {
