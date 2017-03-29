@@ -2,6 +2,8 @@
 
 The projects provides the `cpufreq-bindings` C library.
 
+For Linux kernel documentation on cpufreq, see: https://www.kernel.org/doc/Documentation/cpu-freq/user-guide.txt
+
 ## Building
 
 This project uses CMake.
@@ -57,3 +59,10 @@ pkg-config --cflags cpufreq-bindings
 ## Usage
 
 See the [inc/cpufreq-bindings.h](inc/cpufreq-bindings.h) header file for function descriptions.
+
+## Project Source
+
+Find this and related project sources at the [powercap organization on GitHub](https://github.com/powercap).  
+This project originates at: https://github.com/powercap/cpufreq-bindings
+
+Bug reports and pull requests are welcome.
