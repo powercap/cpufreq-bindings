@@ -4,6 +4,8 @@
  * @author Connor Imes
  * @date 2017-03-16
  */
+// for popen, pread, pwrite, strtok_r
+#define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <inttypes.h>
 #include <fcntl.h>
