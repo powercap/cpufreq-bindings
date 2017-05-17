@@ -4,7 +4,7 @@
  * @author Connor Imes
  * @date 2017-03-16
  */
-// for popen, pread, pwrite, strtok_r
+// for pread, pwrite, strtok_r
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <inttypes.h>
@@ -14,81 +14,80 @@
 #include <string.h>
 #include <unistd.h>
 #include "cpufreq-bindings.h"
+#include "cpufreq-bindings-common.h"
 
-#define TEMPLATE_AFFECTED_CPUS "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/affected_cpus"
-#define TEMPLATE_BIOS_LIMIT "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/bios_limit"
-#define TEMPLATE_CPUINFO_CUR_FREQ "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/cpuinfo_cur_freq"
-#define TEMPLATE_CPUINFO_MAX_FREQ "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/cpuinfo_max_freq"
-#define TEMPLATE_CPUINFO_MIN_FREQ "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/cpuinfo_min_freq"
-#define TEMPLATE_CPUINFO_TRANSITION_LATENCY "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/cpuinfo_transition_latency"
-#define TEMPLATE_RELATED_CPUS "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/related_cpus"
-#define TEMPLATE_SCALING_AVAILABLE_FREQUENCIES "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/scaling_available_frequencies"
-#define TEMPLATE_SCALING_AVAILABLE_GOVERNORS "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/scaling_available_governors"
-#define TEMPLATE_SCALING_CUR_FREQ "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/scaling_cur_freq"
-#define TEMPLATE_SCALING_DRIVER "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/scaling_driver"
-#define TEMPLATE_SCALING_GOVERNOR "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/scaling_governor"
-#define TEMPLATE_SCALING_MAX_FREQ "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/scaling_max_freq"
-#define TEMPLATE_SCALING_MIN_FREQ "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/scaling_min_freq"
-#define TEMPLATE_SCALING_SETSPEED "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/scaling_setspeed"
+#define FILE_AFFECTED_CPUS "affected_cpus"
+#define FILE_BIOS_LIMIT "bios_limit"
+#define FILE_CPUINFO_CUR_FREQ "cpuinfo_cur_freq"
+#define FILE_CPUINFO_MAX_FREQ "cpuinfo_max_freq"
+#define FILE_CPUINFO_MIN_FREQ "cpuinfo_min_freq"
+#define FILE_CPUINFO_TRANSITION_LATENCY "cpuinfo_transition_latency"
+#define FILE_RELATED_CPUS "related_cpus"
+#define FILE_SCALING_AVAILABLE_FREQUENCIES "scaling_available_frequencies"
+#define FILE_SCALING_AVAILABLE_GOVERNORS "scaling_available_governors"
+#define FILE_SCALING_CUR_FREQ "scaling_cur_freq"
+#define FILE_SCALING_DRIVER "scaling_driver"
+#define FILE_SCALING_GOVERNOR "scaling_governor"
+#define FILE_SCALING_MAX_FREQ "scaling_max_freq"
+#define FILE_SCALING_MIN_FREQ "scaling_min_freq"
+#define FILE_SCALING_SETSPEED "scaling_setspeed"
 
-#define TEMPLATE_MAX_LEN 128
 #define U32_MAX_LEN 12
 
 // (hopefully) conservative length estimate without being absurd
 #define GOVERNOR_NAME_MAX_LEN 128
 
-static int cpufreq_bindings_open_file_template(const char* file_template, uint32_t core, int flags) {
-  char file[TEMPLATE_MAX_LEN];
-  snprintf(file, sizeof(file), file_template, core);
+static int cpufreq_bindings_open_file(const char* name, uint32_t core, int flags) {
+  char file[128];
+  snprintf(file, sizeof(file), "/sys/devices/system/cpu/cpu%"PRIu32"/cpufreq/%s", core, name);
   int fd = open(file, flags);
-#ifdef VERBOSE
   if (fd < 0) {
-    perror(file);
+    PERROR(ERROR, file);
   }
-#endif
   return fd;
 }
 
 static void conditional_close(int cond, int fd) {
   int err_save = errno;
-  if (cond) {
-    close(fd);
-#ifdef VERBOSE
-    perror("close");
-#endif
+  if (cond && close(fd)) {
+    PERROR(WARN, "conditional_close: close");
   }
   errno = err_save;
 }
 
-static ssize_t read_file_str_template(int fd, uint32_t core, char* buf, size_t len, const char* template) {
+static ssize_t read_file_str(int fd, uint32_t core, char* buf, size_t len, const char* name) {
   ssize_t ret;
   int local_fd = fd <= 0;
   if (local_fd) {
-    if ((fd = cpufreq_bindings_open_file_template(template, core, O_RDONLY)) <= 0) {
+    if ((fd = cpufreq_bindings_open_file(name, core, O_RDONLY)) <= 0) {
       return -1;
     }
   }
-  ret = pread(fd, buf, len, 0);
+  if ((ret = pread(fd, buf, len, 0)) < 0) {
+    PERROR(ERROR, "read_file_str: pread");
+  }
   conditional_close(local_fd, fd);
   // strip newline character
   buf[strcspn(buf, "\n")] = '\0';
   return ret;
 }
 
-static ssize_t write_file_str_template(int fd, uint32_t core, const char* buf, size_t len, const char* template) {
+static ssize_t write_file_str(int fd, uint32_t core, const char* buf, size_t len, const char* name) {
   ssize_t ret;
   int local_fd = fd <= 0;
   if (local_fd) {
-    if ((fd = cpufreq_bindings_open_file_template(template, core, O_RDWR)) <= 0) {
+    if ((fd = cpufreq_bindings_open_file(name, core, O_RDWR)) <= 0) {
       return -1;
     }
   }
-  ret = pwrite(fd, buf, len, 0);
+  if ((ret = pwrite(fd, buf, len, 0)) < 0) {
+    PERROR(ERROR, "write_file_str: pwrite");
+  }
   conditional_close(local_fd, fd);
   return ret;
 }
 
-static uint32_t read_file_u32arr_template(int fd, uint32_t core, uint32_t* arr, uint32_t len, const char* template) {
+static uint32_t read_file_u32arr(int fd, uint32_t core, uint32_t* arr, uint32_t len, const char* name) {
   uint32_t i = 0;
   // support string values for every core + a whitespace char + a terminating NULL char
   size_t buflen = len * (U32_MAX_LEN + 1) + 1;
@@ -96,17 +95,23 @@ static uint32_t read_file_u32arr_template(int fd, uint32_t core, uint32_t* arr, 
   char* tok;
   char* ptr = NULL;
   int local_fd = fd <= 0;
+  int pret;
   if (local_fd) {
-    if ((fd = cpufreq_bindings_open_file_template(template, core, O_RDONLY)) <= 0) {
+    if ((fd = cpufreq_bindings_open_file(name, core, O_RDONLY)) <= 0) {
       return 0;
     }
   }
-  if (pread(fd, buf, buflen, 0) > 0) {
+  pret = pread(fd, buf, buflen, 0);
+  if (pret < 0) {
+    PERROR(ERROR, "read_file_u32arr: pread");
+  } else if (pret > 0) {
     if (len == 1) {
       errno = 0;
       // optimization - work directly on the buffer rather than tokenizing
       arr[i] = strtoul(buf, NULL, 0);
-      if (!errno) {
+      if (errno) {
+        PERROR(ERROR, "read_file_u32arr: strtoul");
+      } else {
         i++;
       }
     } else {
@@ -116,6 +121,7 @@ static uint32_t read_file_u32arr_template(int fd, uint32_t core, uint32_t* arr, 
         errno = 0;
         arr[i] = strtoul(tok, NULL, 0);
         if (errno) {
+          PERROR(ERROR, "read_file_u32arr: strtoul");
           i = 0;
           tok = NULL;
           break;
@@ -132,59 +138,61 @@ static uint32_t read_file_u32arr_template(int fd, uint32_t core, uint32_t* arr, 
   return i;
 }
 
-static uint32_t read_file_u32_template(int fd, uint32_t core, const char* template) {
+static uint32_t read_file_u32(int fd, uint32_t core, const char* name) {
   uint32_t ret = 0;
-  read_file_u32arr_template(fd, core, &ret, 1, template);
+  read_file_u32arr(fd, core, &ret, 1, name);
   return ret;
 }
 
-static ssize_t write_file_u32_template(int fd, uint32_t core, uint32_t val, const char* template) {
+static ssize_t write_file_u32(int fd, uint32_t core, uint32_t val, const char* name) {
   char buf[U32_MAX_LEN];
   ssize_t ret;
   int local_fd = fd <= 0;
   if (local_fd) {
-    if ((fd = cpufreq_bindings_open_file_template(template, core, O_RDWR)) <= 0) {
+    if ((fd = cpufreq_bindings_open_file(name, core, O_RDWR)) <= 0) {
       return -1;
     }
   }
   snprintf(buf, sizeof(buf), "%"PRIu32, val);
-  ret = pwrite(fd, buf, sizeof(buf), 0);
+  if ((ret = pwrite(fd, buf, sizeof(buf), 0)) < 0) {
+    PERROR(ERROR, "write_file_u32: pwrite");
+  }
   conditional_close(local_fd, fd);
   return ret;
 }
 
-static const char* cpufreq_bindings_file_to_template(cpufreq_bindings_file file) {
+static const char* cpufreq_bindings_file_to_name(cpufreq_bindings_file file) {
   switch (file) {
     case CPUFREQ_BINDINGS_FILE_AFFECTED_CPUS:
-      return TEMPLATE_AFFECTED_CPUS;
+      return FILE_AFFECTED_CPUS;
     case CPUFREQ_BINDINGS_FILE_BIOS_LIMIT:
-      return TEMPLATE_BIOS_LIMIT;
+      return FILE_BIOS_LIMIT;
     case CPUFREQ_BINDINGS_FILE_CPUINFO_CUR_FREQ:
-      return TEMPLATE_CPUINFO_CUR_FREQ;
+      return FILE_CPUINFO_CUR_FREQ;
     case CPUFREQ_BINDINGS_FILE_CPUINFO_MAX_FREQ:
-      return TEMPLATE_CPUINFO_MAX_FREQ;
+      return FILE_CPUINFO_MAX_FREQ;
     case CPUFREQ_BINDINGS_FILE_CPUINFO_MIN_FREQ:
-      return TEMPLATE_CPUINFO_MIN_FREQ;
+      return FILE_CPUINFO_MIN_FREQ;
     case CPUFREQ_BINDINGS_FILE_CPUINFO_TRANSITION_LATENCY:
-      return TEMPLATE_CPUINFO_TRANSITION_LATENCY;
+      return FILE_CPUINFO_TRANSITION_LATENCY;
     case CPUFREQ_BINDINGS_FILE_RELATED_CPUS:
-      return TEMPLATE_RELATED_CPUS;
+      return FILE_RELATED_CPUS;
     case CPUFREQ_BINDINGS_FILE_SCALING_AVAILABLE_FREQUENCIES:
-      return TEMPLATE_SCALING_AVAILABLE_FREQUENCIES;
+      return FILE_SCALING_AVAILABLE_FREQUENCIES;
     case CPUFREQ_BINDINGS_FILE_SCALING_AVAILABLE_GOVERNORS:
-      return TEMPLATE_SCALING_AVAILABLE_GOVERNORS;
+      return FILE_SCALING_AVAILABLE_GOVERNORS;
     case CPUFREQ_BINDINGS_FILE_SCALING_CUR_FREQ:
-      return TEMPLATE_SCALING_CUR_FREQ;
+      return FILE_SCALING_CUR_FREQ;
     case CPUFREQ_BINDINGS_FILE_SCALING_DRIVER:
-      return TEMPLATE_SCALING_DRIVER;
+      return FILE_SCALING_DRIVER;
     case CPUFREQ_BINDINGS_FILE_SCALING_GOVERNOR:
-      return TEMPLATE_SCALING_GOVERNOR;
+      return FILE_SCALING_GOVERNOR;
     case CPUFREQ_BINDINGS_FILE_SCALING_MAX_FREQ:
-      return TEMPLATE_SCALING_MAX_FREQ;
+      return FILE_SCALING_MAX_FREQ;
     case CPUFREQ_BINDINGS_FILE_SCALING_MIN_FREQ:
-      return TEMPLATE_SCALING_MIN_FREQ;
+      return FILE_SCALING_MIN_FREQ;
     case CPUFREQ_BINDINGS_FILE_SCALING_SETSPEED:
-      return TEMPLATE_SCALING_SETSPEED;
+      return FILE_SCALING_SETSPEED;
     default:
       break;
   }
@@ -206,14 +214,14 @@ static int cpufreq_bindings_file_to_flags(cpufreq_bindings_file file) {
 }
 
 int cpufreq_bindings_file_open(uint32_t core, cpufreq_bindings_file file, int flags) {
-  const char* template = cpufreq_bindings_file_to_template(file);
-  if (template == NULL) {
+  const char* name = cpufreq_bindings_file_to_name(file);
+  if (name == NULL) {
     return -1;
   }
   if (flags < 0) {
     flags = cpufreq_bindings_file_to_flags(file);
   }
-  return cpufreq_bindings_open_file_template(template, core, flags);
+  return cpufreq_bindings_open_file(name, core, flags);
 }
 
 int cpufreq_bindings_file_close(int fd) {
@@ -221,35 +229,35 @@ int cpufreq_bindings_file_close(int fd) {
 }
 
 uint32_t cpufreq_bindings_get_affected_cpus(int fd, uint32_t core, uint32_t* affected, uint32_t len) {
-  return read_file_u32arr_template(fd, core, affected, len, TEMPLATE_AFFECTED_CPUS);
+  return read_file_u32arr(fd, core, affected, len, FILE_AFFECTED_CPUS);
 }
 
 uint32_t cpufreq_bindings_get_bios_limit(int fd, uint32_t core) {
-  return read_file_u32_template(fd, core, TEMPLATE_BIOS_LIMIT);
+  return read_file_u32(fd, core, FILE_BIOS_LIMIT);
 }
 
 uint32_t cpufreq_bindings_get_cpuinfo_cur_freq(int fd, uint32_t core) {
-  return read_file_u32_template(fd, core, TEMPLATE_CPUINFO_CUR_FREQ);
+  return read_file_u32(fd, core, FILE_CPUINFO_CUR_FREQ);
 }
 
 uint32_t cpufreq_bindings_get_cpuinfo_max_freq(int fd, uint32_t core) {
-  return read_file_u32_template(fd, core, TEMPLATE_CPUINFO_MAX_FREQ);
+  return read_file_u32(fd, core, FILE_CPUINFO_MAX_FREQ);
 }
 
 uint32_t cpufreq_bindings_get_cpuinfo_min_freq(int fd, uint32_t core) {
-  return read_file_u32_template(fd, core, TEMPLATE_CPUINFO_MIN_FREQ);
+  return read_file_u32(fd, core, FILE_CPUINFO_MIN_FREQ);
 }
 
 uint32_t cpufreq_bindings_get_cpuinfo_transition_latency(int fd, uint32_t core) {
-  return read_file_u32_template(fd, core, TEMPLATE_CPUINFO_TRANSITION_LATENCY);
+  return read_file_u32(fd, core, FILE_CPUINFO_TRANSITION_LATENCY);
 }
 
 uint32_t cpufreq_bindings_get_related_cpus(int fd, uint32_t core, uint32_t* related, uint32_t len) {
-  return read_file_u32arr_template(fd, core, related, len, TEMPLATE_RELATED_CPUS);
+  return read_file_u32arr(fd, core, related, len, FILE_RELATED_CPUS);
 }
 
 uint32_t cpufreq_bindings_get_scaling_available_frequencies(int fd, uint32_t core, uint32_t* freqs, uint32_t len) {
-  return read_file_u32arr_template(fd, core, freqs, len, TEMPLATE_SCALING_AVAILABLE_FREQUENCIES);
+  return read_file_u32arr(fd, core, freqs, len, FILE_SCALING_AVAILABLE_FREQUENCIES);
 }
 
 uint32_t cpufreq_bindings_get_scaling_available_governors(int fd, uint32_t core, char* governors, size_t len, size_t width) {
@@ -257,7 +265,7 @@ uint32_t cpufreq_bindings_get_scaling_available_governors(int fd, uint32_t core,
   char* ptr;
   char* tok;
   uint32_t i = 0;
-  if (read_file_str_template(fd, core, buf, sizeof(buf), TEMPLATE_SCALING_AVAILABLE_GOVERNORS) <= 0) {
+  if (read_file_str(fd, core, buf, sizeof(buf), FILE_SCALING_AVAILABLE_GOVERNORS) <= 0) {
     return 0;
   }
   tok = strtok_r(buf, " ", &ptr);
@@ -273,37 +281,37 @@ uint32_t cpufreq_bindings_get_scaling_available_governors(int fd, uint32_t core,
 }
 
 uint32_t cpufreq_bindings_get_scaling_cur_freq(int fd, uint32_t core) {
-  return read_file_u32_template(fd, core, TEMPLATE_SCALING_CUR_FREQ);
+  return read_file_u32(fd, core, FILE_SCALING_CUR_FREQ);
 }
 
 ssize_t cpufreq_bindings_get_scaling_driver(int fd, uint32_t core, char* driver, size_t len) {
-  return read_file_str_template(fd, core, driver, len, TEMPLATE_SCALING_DRIVER);
+  return read_file_str(fd, core, driver, len, FILE_SCALING_DRIVER);
 }
 
 ssize_t cpufreq_bindings_get_scaling_governor(int fd, uint32_t core, char* governor, size_t len) {
-  return read_file_str_template(fd, core, governor, len, TEMPLATE_SCALING_GOVERNOR);
+  return read_file_str(fd, core, governor, len, FILE_SCALING_GOVERNOR);
 }
 
 ssize_t cpufreq_bindings_set_scaling_governor(int fd, uint32_t core, const char* governor, size_t len) {
-  return write_file_str_template(fd, core, governor, len, TEMPLATE_SCALING_GOVERNOR);
+  return write_file_str(fd, core, governor, len, FILE_SCALING_GOVERNOR);
 }
 
 uint32_t cpufreq_bindings_get_scaling_max_freq(int fd, uint32_t core) {
-  return read_file_u32_template(fd, core, TEMPLATE_SCALING_MAX_FREQ);
+  return read_file_u32(fd, core, FILE_SCALING_MAX_FREQ);
 }
 
 ssize_t cpufreq_bindings_set_scaling_max_freq(int fd, uint32_t core, uint32_t freq) {
-  return write_file_u32_template(fd, core, freq, TEMPLATE_SCALING_MAX_FREQ);
+  return write_file_u32(fd, core, freq, FILE_SCALING_MAX_FREQ);
 }
 
 uint32_t cpufreq_bindings_get_scaling_min_freq(int fd, uint32_t core) {
-  return read_file_u32_template(fd, core, TEMPLATE_SCALING_MIN_FREQ);
+  return read_file_u32(fd, core, FILE_SCALING_MIN_FREQ);
 }
 
 ssize_t cpufreq_bindings_set_scaling_min_freq(int fd, uint32_t core, uint32_t freq) {
-  return write_file_u32_template(fd, core, freq, TEMPLATE_SCALING_MIN_FREQ);
+  return write_file_u32(fd, core, freq, FILE_SCALING_MIN_FREQ);
 }
 
 ssize_t cpufreq_bindings_set_scaling_setspeed(int fd, uint32_t core, uint32_t freq) {
-  return write_file_u32_template(fd, core, freq, TEMPLATE_SCALING_SETSPEED);
+  return write_file_u32(fd, core, freq, FILE_SCALING_SETSPEED);
 }
