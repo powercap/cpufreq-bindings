@@ -18,7 +18,7 @@ typedef enum cpufreq_bindings_loglevel {
   INFO,
   WARN,
   ERROR,
-  OFF,
+  OFF
 } cpufreq_bindings_loglevel;
 
 #ifndef CPUFREQ_BINDINGS_LOG_LEVEL
