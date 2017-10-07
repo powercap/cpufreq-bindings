@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
 project(cpufreq-bindings)
-set(PROJECT_VERSION 0.1.0)
+set(VERSION_MAJOR 0)
+set(VERSION_MINOR 1)
+set(VERSION_PATCH 0)
+set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=c99")
 
@@ -15,6 +18,10 @@ add_library(${PROJECT_NAME} src/cpufreq-bindings.c)
 
 add_executable(cpufreq-bindings-read-cpu src/cpufreq-bindings-read-cpu.c)
 target_link_libraries(cpufreq-bindings-read-cpu ${PROJECT_NAME})
+if(BUILD_SHARED_LIBS)
+  set_target_properties(cpufreq-bindings PROPERTIES VERSION ${PROJECT_VERSION}
+                                                    SOVERSION ${VERSION_MAJOR})
+endif()
 
 # pkg-config
 
