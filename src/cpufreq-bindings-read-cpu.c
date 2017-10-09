@@ -4,9 +4,12 @@
  * @author Connor Imes
  * @date 2017-03-16
  */
+#include <errno.h>
+#include <getopt.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "cpufreq-bindings.h"
 
 #define MAX_CPUS 1024
@@ -56,7 +59,7 @@ static void print_or_perror_u32arr(uint32_t* arr, uint32_t len, const char* name
   }
 }
 
-static void test_read(uint32_t core, const int* fds) {
+static void print_cpu(uint32_t core, const int* fds) {
   char buf[2014];
   char governors[MAX_GOVS][MAX_GOV_LEN];
   uint32_t freqs[MAX_FREQS];
@@ -109,34 +112,38 @@ static void test_read(uint32_t core, const int* fds) {
   print_or_perror_u32(u32_val, "scaling_min_freq");
 }
 
+static const char short_options[] = "hc:";
+static const struct option long_options[] = {
+  {"help",                no_argument,        NULL, 'h'},
+  {"cpu",                 required_argument,  NULL, 'c'},
+  {0, 0, 0, 0}
+};
+
+static void print_usage(void) {
+  printf("Usage: cpufreq-bindings-read-cpu [OPTION]...\n");
+  printf("Options:\n");
+  printf("  -h, --help                   Print this message and exit\n");
+  printf("  -c, --cpu=CPU                The processor core to read (default is 0)\n");
+}
+
 int main(int argc, char** argv) {
   uint32_t core = 0;
-  int cache_fds = 0;
   int fds[CPUFREQ_BINDINGS_FILE_SCALING_SETSPEED + 1] = { 0 };
-  int i;
-  if (argc > 1) {
-    core = atoi(argv[1]);
-  }
-  if (argc > 2) {
-    cache_fds = atoi(argv[2]);
-  }
-  if (cache_fds) {
-    for (i = 0; i <= CPUFREQ_BINDINGS_FILE_SCALING_SETSPEED; i++) {
-      fds[i] = cpufreq_bindings_file_open(core, i, -1);
-      if (fds[i] <= 0) {
-        perror("cpufreq_bindings_file_open");
-        fprintf(stderr, "Failed to open at file index: %d\n", i);
-      }
+  int c;
+  while ((c = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
+    switch (c) {
+      case 'h':
+        print_usage();
+        return 0;
+      case 'c':
+        core = atoi(optarg);
+        break;
+      case '?':
+      default:
+        print_usage();
+        return -EINVAL;
     }
   }
-  test_read(core, fds);
-  if (cache_fds) {
-    for (i = 0; i <= CPUFREQ_BINDINGS_FILE_SCALING_SETSPEED; i++) {
-      if (fds[i] > 0 && cpufreq_bindings_file_close(fds[i])) {
-        perror("cpufreq_bindings_file_close");
-        fprintf(stderr, "Failed to close at file index: %d\n", i);
-      }
-    }
-  }
+  print_cpu(core, fds);
   return 0;
 }
