@@ -1,4 +1,4 @@
-# cpufreq-bindings - C bindings to cpufreq in Linux sysfs
+# cpufreq-bindings - C bindings to CPUFreq in Linux sysfs
 
 The projects provides the `cpufreq-bindings` C library.
 
