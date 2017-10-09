@@ -158,7 +158,7 @@ static int cpufreq_bindings_file_to_flags(cpufreq_bindings_file file) {
 }
 
 int cpufreq_bindings_file_open(uint32_t core, cpufreq_bindings_file file, int flags) {
-  if (file < 0 || file > CPUFREQ_BINDINGS_FILE_SCALING_SETSPEED) {
+  if ((int) file < 0 || (int) file > CPUFREQ_BINDINGS_FILE_SCALING_SETSPEED) {
     errno = EINVAL;
     return -1;
   }
