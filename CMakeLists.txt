@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.5)
 
 project(cpufreq-bindings)
 set(VERSION_MAJOR 0)
@@ -9,6 +9,8 @@ set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=c99")
 
 include_directories(${PROJECT_SOURCE_DIR}/inc)
+
+include(GNUInstallDirs)
 
 # Libraries
 
@@ -26,8 +28,8 @@ endif()
 # pkg-config
 
 set(PKG_CONFIG_EXEC_PREFIX "\${prefix}")
-set(PKG_CONFIG_LIBDIR "\${prefix}/lib")
-set(PKG_CONFIG_INCLUDEDIR "\${prefix}/include/${PROJECT_NAME}")
+set(PKG_CONFIG_LIBDIR "\${prefix}/${CMAKE_INSTALL_LIBDIR}")
+set(PKG_CONFIG_INCLUDEDIR "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}")
 set(PKG_CONFIG_CFLAGS "-I\${includedir}")
 
 set(PKG_CONFIG_NAME "${PROJECT_NAME}")
@@ -41,10 +43,10 @@ configure_file(
 
 # Install
 
-install(TARGETS ${PROJECT_NAME} DESTINATION lib)
-install(TARGETS cpufreq-bindings-read-cpu DESTINATION bin)
-install(DIRECTORY inc/ DESTINATION "include/${PROJECT_NAME}")
-install(DIRECTORY ${CMAKE_BINARY_DIR}/pkgconfig/ DESTINATION lib/pkgconfig)
+install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS cpufreq-bindings-read-cpu DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+install(DIRECTORY ${CMAKE_BINARY_DIR}/pkgconfig/ DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 # Uninstall
 
