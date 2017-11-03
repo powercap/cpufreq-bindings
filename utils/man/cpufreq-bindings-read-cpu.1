@@ -1,0 +1,43 @@
+.TH "cpufreq-bindings-read-cpu" "1" "2017-11-03" "cpufreq-bindings" "cpufreq-bindings"
+.SH "NAME"
+.LP
+cpufreq\-bindings\-read\-cpu \- read all cpufreq data for a cpu
+.SH "SYNPOSIS"
+.LP
+\fBcpufreq\-bindings\-read\-cpu\fP
+[\fIOPTION\fP]...
+.SH "DESCRIPTION"
+.LP
+Print cpufreq fields for a processor core.
+.LP
+If a file cannot be read, an error is printed.
+The backend cpufreq-bindings library will also print errors separately, unless
+compiled with logging disabled.
+To ignore errors, simply redirect standard error to \fB/dev/null\fP.
+.LP
+Note that some files require sudo/root privileges to read, e.g.,
+\fBcpuinfo_cur_freq\fP.
+.SH "OPTIONS"
+.LP
+.TP
+\fB\-h\fP, \fB\-\-help\fP
+Prints the help screen.
+.TP
+\fB\-c\fP, \fB\-\-cpu\fP=\fBCPU\fP
+The processor core to read (default is 0).
+.SH "EXAMPLES"
+.TP
+\fBcpufreq\-bindings\-read\-cpu\fP
+Print values for CPU 0.
+.TP
+\fBcpufreq\-bindings\-read\-cpu \-c 2\fP
+Print values for CPU 2.
+.TP
+\fBcpufreq\-bindings\-read\-cpu 2>/dev/null\fP
+Print values for CPU 0, ignoring errors.
+.SH "BUGS"
+.LP
+Report bugs upstream at <https://github.com/powercap/cpufreq-bindings>
+.SH "FILES"
+.nf
+\fI/sys/devices/system/cpu/cpu*/cpufreq/\fP

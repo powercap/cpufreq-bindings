@@ -12,18 +12,15 @@ include_directories(${PROJECT_SOURCE_DIR}/inc)
 
 include(GNUInstallDirs)
 
+
 # Libraries
 
 add_library(${PROJECT_NAME} src/cpufreq-bindings.c)
-
-# Binaries
-
-add_executable(cpufreq-bindings-read-cpu src/cpufreq-bindings-read-cpu.c)
-target_link_libraries(cpufreq-bindings-read-cpu ${PROJECT_NAME})
 if(BUILD_SHARED_LIBS)
   set_target_properties(cpufreq-bindings PROPERTIES VERSION ${PROJECT_VERSION}
                                                     SOVERSION ${VERSION_MAJOR})
 endif()
+
 
 # pkg-config
 
@@ -38,15 +35,21 @@ set(PKG_CONFIG_LIBS "-L\${libdir} -l${PROJECT_NAME}")
 set(PKG_CONFIG_LIBS_PRIVATE "")
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig.in
-  ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${PROJECT_NAME}.pc
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
 )
+
+
+# Utilities
+
+add_subdirectory(utils)
+
 
 # Install
 
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(TARGETS cpufreq-bindings-read-cpu DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
-install(DIRECTORY ${CMAKE_BINARY_DIR}/pkgconfig/ DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+install(FILES inc/cpufreq-bindings.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+install(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
 
 # Uninstall
 
