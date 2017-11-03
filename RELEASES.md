@@ -1,6 +1,8 @@
 # Release Notes
 
 ## [Unreleased]
+
+## [v0.1.1] - 2017-11-03
 ### Added
  * Multiarch support (use GNU standard installation directories)
  * Man page for cpufreq-bindings-read-cpu utility
@@ -17,4 +19,5 @@
  * Initial public release
 
 
-[Unreleased]: https://github.com/powercap/cpufreq-bindings/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/powercap/cpufreq-bindings/compare/v0.1.1...HEAD
+[v0.1.1]: https://github.com/powercap/cpufreq-bindings/compare/v0.1.0...v0.1.1
