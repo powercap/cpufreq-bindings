@@ -4,6 +4,10 @@ The projects provides the `cpufreq-bindings` C library.
 
 For Linux kernel documentation on cpufreq, see: https://www.kernel.org/doc/Documentation/cpu-freq/user-guide.txt
 
+If using this project for other scientific works or publications, please reference:
+
+* Connor Imes, Huazhe Zhang, Kevin Zhao, Henry Hoffmann. "Handing DVFS to Hardware: Using Power Capping to Control Software Performance". Technical Report [TR-2018-03](https://cs.uchicago.edu/research/publications/techreports/TR-2018-03). University of Chicago, Department of Computer Science. 2018.
+
 ## Building
 
 This project uses CMake.
